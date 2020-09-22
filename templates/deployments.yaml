@@ -217,6 +217,11 @@ spec:
         - name: st2-virtualenvs-vol
           mountPath: /opt/stackstorm/virtualenvs
           readOnly: true
+        {{- else if .Values.st2.packs.nfs.server }}
+        - name: st2-packs-vol
+          mountPath: /opt/stackstorm/packs
+        - name: st2-virtualenvs-vol
+          mountPath: /opt/stackstorm/virtualenvs
         {{- end }}
         resources:
 {{ toYaml .Values.st2api.resources | indent 10 }}
@@ -235,12 +240,7 @@ spec:
         - name: st2-config-vol
           configMap:
             name: {{ .Release.Name }}-st2-config
-        {{- if .Values.st2.packs.image.repository }}
-        - name: st2-packs-vol
-          emptyDir: {}
-        - name: st2-virtualenvs-vol
-          emptyDir: {}
-        {{- end }}
+        {{- include "packs-volumes" . | indent 8 }}
     {{- with .Values.st2api.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
@@ -964,6 +964,11 @@ spec:
         - name: st2-virtualenvs-vol
           mountPath: /opt/stackstorm/virtualenvs
           readOnly: true
+        {{- else if $.Values.st2.packs.nfs.server }}
+        - name: st2-packs-vol
+          mountPath: /opt/stackstorm/packs
+        - name: st2-virtualenvs-vol
+          mountPath: /opt/stackstorm/virtualenvs
         {{- end }}
         {{- if $.Values.secrets.st2.datastore_crypto_key }}
         - name: st2-encryption-key-vol
@@ -987,13 +992,8 @@ spec:
         - name: st2-config-vol
           configMap:
             name: {{ $.Release.Name }}-st2-config
-        {{- if $.Values.st2.packs.image.repository }}
-        - name: st2-packs-vol
-          emptyDir: {}
-        - name: st2-virtualenvs-vol
-          emptyDir: {}
-        {{- end }}
-    {{- with .nodeSelector }}
+        {{- include "packs-volumes" $ | indent 8}}
+        {{- with .nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
     {{- end }}
@@ -1123,6 +1123,11 @@ spec:
         - name: st2-virtualenvs-vol
           mountPath: /opt/stackstorm/virtualenvs
           readOnly: true
+        {{- else if .Values.st2.packs.nfs.server }}
+        - name: st2-packs-vol
+          mountPath: /opt/stackstorm/packs
+        - name: st2-virtualenvs-vol
+          mountPath: /opt/stackstorm/virtualenvs
         {{- end }}
         resources:
 {{ toYaml .Values.st2actionrunner.resources | indent 10 }}
@@ -1149,12 +1154,7 @@ spec:
               path: stanley_rsa
               # 0400 file permission
               mode: 256
-        {{- if .Values.st2.packs.image.repository }}
-        - name: st2-packs-vol
-          emptyDir: {}
-        - name: st2-virtualenvs-vol
-          emptyDir: {}
-        {{- end }}
+        {{- include "packs-volumes" . | indent 8 }}
     {{- with .Values.st2actionrunner.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
@@ -1400,6 +1400,11 @@ spec:
         - name: st2-virtualenvs-vol
           mountPath: /opt/stackstorm/virtualenvs
           readOnly: true
+        {{- else if .Values.st2.packs.nfs.server }}
+        - name: st2-packs-vol
+          mountPath: /opt/stackstorm/packs
+        - name: st2-virtualenvs-vol
+          mountPath: /opt/stackstorm/virtualenvs
         {{- end }}
         command:
           - 'bash'
@@ -1446,12 +1451,7 @@ spec:
               path: stanley_rsa
               # 0400 file permission
               mode: 256
-        {{- if .Values.st2.packs.image.repository }}
-        - name: st2-packs-vol
-          emptyDir: {}
-        - name: st2-virtualenvs-vol
-          emptyDir: {}
-        {{- end }}
+        {{- include "packs-volumes" . | indent 8 }}
 
 {{ if .Values.st2chatops.enabled -}}
 ---
