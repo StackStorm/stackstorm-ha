@@ -825,28 +825,18 @@ spec:
     {{- end }}
 
 {{- if or .Values.st2.packs.sensors .Values.st2sensorcontainer.replicas }}
-  {{- if .Values.st2.packs.sensors }}
-    {{- $sensor_range := .Values.st2.packs.sensors }}
-  {{- else }}{{/* .Values.st2sensorcontainer.replicas */}}
-    {{- $sensor_range, $_ := until .Values.st2sensorcontainer.replicas }}
-  {{- end }}
-{{- range $sensor_range }}
-  {{- if .Values.st2.packs.sensors }}
-    {{- $sensor := . }}
-    {{- $name := print "st2sensorcontainer" (template "hyphenPrefix" .name) }}
-    {{- $sensor_hash_ranges := "" }}
-  {{- else }}{{/* .Values.st2sensorcontainer.replicas */}}
-    {{- $sensor := $.st2sensorcontainer }}
-    {{- $name := print "st2sensorcontainer-" . }}
-    {{- $max_hash := 4294967296 }}
-    {{- $sensor_range_size := div (add1 $max_hash) $.Values.st2sensorcontainer.replicas }}
-    {{- $sensor_range_start := mul . $sensor_range_size }}
-    {{- $sensor_range_end := add $sensor_range_start $sensor_range_size -1 }}
-    {{- if gt (add 10 $sensor_range_end) $max_hash }}{{/* deal with integer math rounding errors */}}
-      {{- $sensor_range_end := $max_hash }}
-    {{- end }}
-    {{- $sensor_hash_ranges := print $sensor_range_start ".." $sensor_range_end }}
-  {{- end }}
+{{- $use_packs_sensors := not ($.Values.st2.packs.sensors | empty) }}
+{{- range ($use_packs_sensors | ternary (.Values.st2.packs.sensors) (until (.Values.st2sensorcontainer.replicas|int))) }}
+  {{- $sensor := $use_packs_sensors | ternary (.) ($.st2sensorcontainer) }}
+  {{- $name := $use_packs_sensors | ternary (print "st2sensorcontainer" (include "hyphenPrefix" .name)) (print "st2sensorcontainer-" .) }}
+  {{/* define vars only needed if $.Values.st2sensorcontainer.replicas */}}
+  {{- $max_hash := 4294967296 }}
+  {{- $sensor_range_size := div (add1 $max_hash) $.Values.st2sensorcontainer.replicas }}
+  {{- $sensor_range_start := mul . $sensor_range_size }}
+  {{- $sensor_range_end := add $sensor_range_start $sensor_range_size -1 }}
+  {{/* deal with integer math rounding errors */}}
+  {{- $sensor_range_end := gt (add 10 $sensor_range_end) $max_hash | ternary $max_hash $sensor_range_end }}
+  {{- $sensor_hash_ranges := $use_packs_sensors | ternary ("") (print $sensor_range_start ".." $sensor_range_end) }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -937,7 +927,7 @@ spec:
           - --config-file=/etc/st2/st2.conf
           - --config-file=/etc/st2/st2.docker.conf
           - --config-file=/etc/st2/st2.user.conf
-          {{- if $sensor.ref }}{{ /* only in st2.packs.sensors[] */}}
+          {{- if $sensor.ref }}{{/* only in st2.packs.sensors[] */}}
           - --single-sensor-mode
           - --sensor-ref={{ $sensor.ref }}
           {{- else if $sensor_hash_ranges }}{{/* only for st2sensorcontainer.replicas */}}
