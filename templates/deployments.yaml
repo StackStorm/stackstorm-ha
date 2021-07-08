@@ -824,14 +824,14 @@ spec:
       tolerations: {{- toYaml . | nindent 8 }}
     {{- end }}
 
-{{- if or .Values.st2.packs.sensors .Values.st2sensorcontainer.replicas }}
+{{- if or .Values.st2.packs.sensors .Values.st2sensorcontainer.deployments }}
 {{- $use_packs_sensors := not ($.Values.st2.packs.sensors | empty) }}
-{{- range ($use_packs_sensors | ternary (.Values.st2.packs.sensors) (until (.Values.st2sensorcontainer.replicas|int))) }}
+{{- range ($use_packs_sensors | ternary (.Values.st2.packs.sensors) (until (.Values.st2sensorcontainer.deployments|int))) }}
   {{- $sensor := $use_packs_sensors | ternary (.) ($.st2sensorcontainer) }}
   {{- $name := $use_packs_sensors | ternary (print "st2sensorcontainer" (include "hyphenPrefix" .name)) (print "st2sensorcontainer-" .) }}
-  {{/* define vars only needed if $.Values.st2sensorcontainer.replicas */}}
+  {{/* define vars only needed if $.Values.st2sensorcontainer.deployments */}}
   {{- $max_hash := 4294967296 }}
-  {{- $sensor_range_size := div (add1 $max_hash) $.Values.st2sensorcontainer.replicas }}
+  {{- $sensor_range_size := div (add1 $max_hash) $.Values.st2sensorcontainer.deployments }}
   {{- $sensor_range_start := mul . $sensor_range_size }}
   {{- $sensor_range_end := add $sensor_range_start $sensor_range_size -1 }}
   {{/* deal with integer math rounding errors */}}
@@ -857,7 +857,7 @@ spec:
   # https://docs.stackstorm.com/reference/ha.html#st2sensorcontainer
   # It is possible to run st2sensorcontainer in one of two HA modes:
   #   (1) by running one sensor process on each compute instance; or
-  #   (2) by setting the number of st2sensorcontainer replicas.
+  #   (2) by setting the number of st2sensorcontainer deployments.
   # In both cases, each sensor node needs to be provided with proper partition information to share work with other sensor nodes
   # so that the same sensor does not run on different nodes. See https://docs.stackstorm.com/reference/sensor_partitioning.html
   replicas: 1
@@ -931,7 +931,7 @@ spec:
           {{- if $sensor.ref }}{{/* only in st2.packs.sensors[] */}}
           - --single-sensor-mode
           - --sensor-ref={{ $sensor.ref }}
-          {{- else if $sensor_hash_ranges }}{{/* only for st2sensorcontainer.replicas */}}
+          {{- else if $sensor_hash_ranges }}{{/* only for st2sensorcontainer.deployments */}}
           # injected by {{ $name }}-init-config
           - --config-file=/etc/st2/st2.sensorcontainer.conf
           {{- end }}
