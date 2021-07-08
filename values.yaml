@@ -431,7 +431,7 @@ st2actionrunner:
 
 st2sensorcontainer:
   # replicas is only used if st2.packs.sensors is empty
-  replicas: 2
+  replicas: 1
 
 # The st2client deployment/pod simplifies ad-hoc administration.
 # st2client is a special purpose actionrunner pod, but you can customize it separately
