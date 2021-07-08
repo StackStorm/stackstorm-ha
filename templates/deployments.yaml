@@ -855,10 +855,11 @@ spec:
       app: {{ $name }}
       release: {{ $.Release.Name }}
   # https://docs.stackstorm.com/reference/ha.html#st2sensorcontainer
-  # TODO: adjust this docstring
-  # It is possible to run st2sensorcontainer in HA mode by running one process on each compute instance. Each sensor node needs to be
-  # provided with proper partition information to share work with other sensor nodes so that the same sensor does not run on different nodes.
-  # See Partitioning Sensors for information on how to partition sensors.
+  # It is possible to run st2sensorcontainer in one of two HA modes:
+  #   (1) by running one sensor process on each compute instance; or
+  #   (2) by setting the number of st2sensorcontainer replicas.
+  # In both cases, each sensor node needs to be provided with proper partition information to share work with other sensor nodes
+  # so that the same sensor does not run on different nodes. See https://docs.stackstorm.com/reference/sensor_partitioning.html
   replicas: 1
   template:
     metadata:
