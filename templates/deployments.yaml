@@ -2,6 +2,11 @@
 {{- if and .Values.st2.packs.image }}
 {{- fail "Value st2.packs.image was renamed to st2.packs.images and is now a list of images" }}
 {{- end }}
+{{- if .Values.st2.packs.volumes.enabled }}
+  {{- if not (and .Values.st2.packs.volumes.packs .Values.st2.packs.volumes.virtualenvs) }}
+{{- fail "Volume definition(s) missing! When st2.packs.volumes.enabled, you must define volumes for both packs and virtualenvs." }}
+  {{- end }}
+{{- end }}
 
 ---
 apiVersion: apps/v1
@@ -158,7 +163,7 @@ spec:
       initContainers:
       {{- include "init-containers-wait-for-db" . | nindent 6 }}
       {{- include "init-containers-wait-for-mq" . | nindent 6 }}
-      {{- if .Values.st2.packs.images }}
+      {{- if and .Values.st2.packs.images (not .Values.st2.packs.volumes.enabled) }}
         {{- include "packs-initContainers" . | nindent 6 }}
       {{- end }}
       containers:
@@ -180,13 +185,9 @@ spec:
           mountPath: /etc/st2/keys
           readOnly: true
         {{- end }}
-        {{- if .Values.st2.packs.images }}
-        - name: st2-packs-vol
-          mountPath: /opt/stackstorm/packs
-          readOnly: true
-        - name: st2-virtualenvs-vol
-          mountPath: /opt/stackstorm/virtualenvs
-          readOnly: true
+        {{- include "packs-volume-mounts" . | nindent 8 }}
+        {{- if .Values.st2.packs.volumes.enabled }}
+          {{- include "pack-configs-volume-mount" . | nindent 8 }}
         {{- end }}
         resources:
           {{- toYaml .Values.st2api.resources | nindent 10 }}
@@ -203,8 +204,9 @@ spec:
               path: datastore_key.json
         {{- end }}
         {{- include "st2-config-volume" . | nindent 8 }}
-        {{- if .Values.st2.packs.images }}
-{{- include "packs-volumes" . | indent 8 }}
+        {{- include "packs-volumes" . | nindent 8 }}
+        {{- if .Values.st2.packs.volumes.enabled }}
+          {{- include "pack-configs-volume" . | nindent 8 }}
         {{- end }}
     {{- if .Values.dnsPolicy }}
       dnsPolicy: {{ .Values.dnsPolicy }}
@@ -874,7 +876,7 @@ spec:
       initContainers:
       {{- include "init-containers-wait-for-db" $ | nindent 6 }}
       {{- include "init-containers-wait-for-mq" $ | nindent 6 }}
-      {{- if $.Values.st2.packs.images }}
+      {{- if and $.Values.st2.packs.images (not $.Values.st2.packs.volumes.enabled) }}
         {{- include "packs-initContainers" $ | nindent 6 }}
       {{- end }}
       containers:
@@ -904,14 +906,7 @@ spec:
             name: {{ $.Release.Name }}-st2-urls
         volumeMounts:
         {{- include "st2-config-volume-mounts" $ | nindent 8 }}
-        {{- if $.Values.st2.packs.images }}
-        - name: st2-packs-vol
-          mountPath: /opt/stackstorm/packs
-          readOnly: true
-        - name: st2-virtualenvs-vol
-          mountPath: /opt/stackstorm/virtualenvs
-          readOnly: true
-        {{- end }}
+        {{- include "packs-volume-mounts" $ | nindent 8 }}
         {{- if $.Values.st2.datastore_crypto_key }}
         - name: st2-encryption-key-vol
           mountPath: /etc/st2/keys
@@ -932,9 +927,7 @@ spec:
               path: datastore_key.json
         {{- end }}
         {{- include "st2-config-volume" $ | nindent 8 }}
-        {{- if $.Values.st2.packs.images }}
-{{- include "packs-volumes" $ | indent 8 }}
-        {{- end }}
+        {{- include "packs-volumes" $ | nindent 8 }}
     {{- if $.Values.dnsPolicy }}
       dnsPolicy: {{ $.Values.dnsPolicy }}
     {{- end }}
@@ -1004,7 +997,7 @@ spec:
       initContainers:
       {{- include "init-containers-wait-for-db" . | nindent 6 }}
       {{- include "init-containers-wait-for-mq" . | nindent 6 }}
-      {{- if .Values.st2.packs.images }}
+      {{- if and .Values.st2.packs.images (not .Values.st2.packs.volumes.enabled) }}
         {{- include "packs-initContainers" . | nindent 6 }}
       {{- end }}
       containers:
@@ -1026,13 +1019,9 @@ spec:
           mountPath: /etc/st2/keys
           readOnly: true
         {{- end }}
-        {{- if .Values.st2.packs.images }}
-        - name: st2-packs-vol
-          mountPath: /opt/stackstorm/packs
-          readOnly: true
-        - name: st2-virtualenvs-vol
-          mountPath: /opt/stackstorm/virtualenvs
-          readOnly: true
+        {{- include "packs-volume-mounts" . | nindent 8 }}
+        {{- if .Values.st2.packs.volumes.enabled }}
+          {{- include "pack-configs-volume-mount" . | nindent 8 }}
         {{- end }}
         - name: st2-post-start-script-vol
           mountPath: /post-start.sh
@@ -1064,8 +1053,9 @@ spec:
               path: {{ tpl .Values.st2.system_user.ssh_key_file . | base }}
               # 0400 file permission
               mode: 256
-        {{- if .Values.st2.packs.images }}
-{{- include "packs-volumes" . | indent 8 }}
+        {{- include "packs-volumes" . | nindent 8 }}
+        {{- if .Values.st2.packs.volumes.enabled }}
+          {{- include "pack-configs-volume" . | nindent 8 }}
         {{- end }}
         - name: st2-post-start-script-vol
           configMap:
@@ -1209,7 +1199,7 @@ spec:
       - name: {{ .Values.image.pullSecret }}
       {{- end }}
       initContainers:
-      {{- if .Values.st2.packs.images }}
+      {{- if and .Values.st2.packs.images (not .Values.st2.packs.volumes.enabled) }}
         {{- include "packs-initContainers" . | nindent 6 }}
       {{- end }}
       # Sidecar container for generating st2client config with st2 username & password pair and sharing produced file with the main container
@@ -1263,8 +1253,6 @@ spec:
         - name: st2-rbac-mappings-vol
           mountPath: /opt/stackstorm/rbac/mappings/
         {{- end }}
-        - name: st2-pack-configs-vol
-          mountPath: /opt/stackstorm/configs/
         - name: st2client-config-vol
           mountPath: /root/.st2/
         - name: st2-ssh-key-vol
@@ -1274,14 +1262,8 @@ spec:
           mountPath: /etc/st2/keys
           readOnly: true
         {{- end }}
-        {{- if .Values.st2.packs.images }}
-        - name: st2-packs-vol
-          mountPath: /opt/stackstorm/packs
-          readOnly: true
-        - name: st2-virtualenvs-vol
-          mountPath: /opt/stackstorm/virtualenvs
-          readOnly: true
-        {{- end }}
+        {{- include "packs-volume-mounts" . | nindent 8 }}
+        {{- include "pack-configs-volume-mount" . | nindent 8 }}
         - name: st2-post-start-script-vol
           mountPath: /post-start.sh
           subPath: post-start.sh
@@ -1318,9 +1300,6 @@ spec:
           configMap:
             name: {{ .Release.Name }}-st2-rbac-mappings
         {{- end }}
-        - name: st2-pack-configs-vol
-          configMap:
-            name: {{ .Release.Name }}-st2-pack-configs
         - name: st2client-config-vol
           emptyDir:
             medium: Memory
@@ -1332,9 +1311,8 @@ spec:
               path: {{ tpl .Values.st2.system_user.ssh_key_file . | base }}
               # 0400 file permission
               mode: 256
-        {{- if .Values.st2.packs.images }}
-{{- include "packs-volumes" . | indent 8 }}
-        {{- end }}
+        {{- include "packs-volumes" . | nindent 8 }}
+        {{- include "pack-configs-volume" . | nindent 8 }}
         - name: st2-post-start-script-vol
           configMap:
             name: {{ .Release.Name }}-st2actionrunner-post-start-script

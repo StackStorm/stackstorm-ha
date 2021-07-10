@@ -16,6 +16,7 @@
 * Move st2-config-vol volume definition and list of st2-config-vol volumeMounts to helpers to reduce duplication (#198) (by @cognifloyd)
 * Fix permissions for /home/stanley/.ssh/stanley_rsa using the postStart lifecycle hook (#219) (by @cognifloyd)
 * Make system_user configurable when using custom st2actionrunner images that do not provide stanley (#220) (by @cognifloyd)
+* New feature: Shared packs volumes `st2.packs.volumes`. Allow using cluster-specific persistent volumes to store packs, virtualenvs, and (optionally) configs. This enables using `st2 pack install`. It even works with `st2packs` images in `st2.packs.images`. (#199) (by @cognifloyd)
 
 ## v0.60.0
 * Switch st2 version to `v3.5dev` as a new latest development version (#187)
